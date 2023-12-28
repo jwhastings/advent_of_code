@@ -1,3 +1,5 @@
+// https://adventofcode.com/2023/day/1
+
 package main
 
 import (
@@ -40,6 +42,8 @@ func partOne(s string) (result int) {
 	return result
 }
 
+// converCharToNumber takes a string and replaces numbers represented as strings with a string that
+// contains the corresponding digit
 func convertCharToNumber(s string) (convertedString string) {
 	words := []string{
 		"zero",
@@ -53,6 +57,7 @@ func convertCharToNumber(s string) (convertedString string) {
 		"eight",
 		"nine",
 	}
+	// cheeky way to overcome overlapping numbers as text
 	numbers := []string{
 		"ze0ro",
 		"on1e",
@@ -74,10 +79,11 @@ func convertCharToNumber(s string) (convertedString string) {
 	return convertedString
 }
 
-func partTwo(s string) (result int, newStr string) {
-	newStr = convertCharToNumber(s)
+// partTwo converts any numbers as text to its digit before calculating the two digit number for a given string
+func partTwo(s string) (result int) {
+	newStr := convertCharToNumber(s)
 	result = partOne(newStr)
-	return result, newStr
+	return result
 }
 
 func main() {
@@ -89,26 +95,19 @@ func main() {
 	scanner := bufio.NewScanner(file)
 
 	var sumPartOne, sumPartTwo int
-	test := 0
 	for scanner.Scan() {
-		// get string in current line
+		// get string from input file, line by line
 		stringValue := scanner.Text()
 
 		// convert digits to an integer and add to total
 		resultOne := partOne(stringValue)
-		resultTwo, newStringValue := partTwo(stringValue)
-		if false {
-			fmt.Println(newStringValue)
-		}
+		resultTwo := partTwo(stringValue)
+
 		sumPartOne += resultOne
 		sumPartTwo += resultTwo
-		test += 1
-		// if test > 5 {
-		// 	break
-		// }
 	}
 
 	file.Close()
 
-	fmt.Printf("part 1 answer: %d\npart 2 answer: %d", sumPartOne, sumPartTwo)
+	fmt.Printf("Part 1 answer: %d\nPart 2 answer: %d", sumPartOne, sumPartTwo)
 }
