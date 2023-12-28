@@ -1,3 +1,3 @@
 # Advent of Code
 
-Solutions to [Advent of Code](https://adventofcode.com/) puzzles.
+Less than optimal solutions to [Advent of Code](https://adventofcode.com/) puzzles using [Go](https://go.dev/).
