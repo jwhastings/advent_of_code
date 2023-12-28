@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -34,21 +35,15 @@ func IsSymbol(char string) bool {
 	return !(strings.ContainsAny(char, notsymbols))
 }
 
-func CheckLeft(a, b int, line string) bool {
-	return IsSymbol(string(line[a-1]))
-}
-
-func CheckRight(a, b int, line string) bool {
-	return IsSymbol(string(line[b]))
-}
-
-func CheckAboveBelow(a, b int, lineAboveBelow string) bool {
+func CheckRange(a, b int, line string) bool {
 	for i := a; i < b; i++ {
-		if IsSymbol(string(lineAboveBelow[i])) {
+		char := string(line[i])
+		if IsSymbol(char) {
 			return true
 		}
 	}
 	return false
+
 }
 
 func main() {
@@ -72,36 +67,72 @@ func main() {
 	}
 	file.Close()
 
-	fmt.Println(strings.Repeat("=", 140))
-	// for row := 0; row < len(schematic); row++ {
-	for row := 0; row < 3; row++ {
+	var partNumbers []int
+	var adjacentSymbol bool
+	for row := 0; row < len(schematic); row++ {
+		// for row := 0; row < 3; row++ {
 		line := schematic[row]
-		fmt.Println(line)
 		re := regexp.MustCompile("[0-9]+")
 		allDigits := re.FindAllIndex([]byte(line), -1)
+		var numStr string
 		for _, ab := range allDigits {
+			adjacentSymbol = false
 			a := ab[0] // index for start of number
 			b := ab[1] // index of end of number + 1
-			fmt.Printf("Number: %v\n", line[a:b])
+			numStr = line[a:b]
 			// check horizontals
-			if a > 0 {
-				fmt.Printf("CheckLeft: %v; ", CheckLeft(a, b, line))
+			charToLeft := (a > 0)
+			charToRight := (b < width)
+			charAbove := row > 0
+			charBelow := row < len(schematic)-1
+
+			if charToLeft && CheckRange(a-1, a, line) {
+				adjacentSymbol = true
 			}
-			if b < width {
-				fmt.Printf("CheckRight: %v; ", CheckRight(a, b, line))
+			if charToRight && CheckRange(b, b+1, line) {
+				adjacentSymbol = true
 			}
-			// check verticals
-			if row > 0 {
+			// check above
+			if charAbove {
 				lineAbove := schematic[row-1]
-				fmt.Printf("CheckAbove: %v; ", CheckAboveBelow(a, b, lineAbove))
+
+				if charToLeft && charToRight && CheckRange(a-1, b+1, lineAbove) {
+					adjacentSymbol = true
+				} else if charToLeft && CheckRange(a-1, b, lineAbove) {
+					adjacentSymbol = true
+				} else if charToRight && CheckRange(a, b+1, lineAbove) {
+					adjacentSymbol = true
+				} else if CheckRange(a, b, lineAbove) {
+					adjacentSymbol = true
+				}
 			}
-			if row < len(schematic) {
+			// check below
+			if charBelow {
 				lineBelow := schematic[row+1]
-				fmt.Printf("CheckAbove: %v; ", CheckAboveBelow(a, b, lineBelow))
+
+				if charToLeft && charToRight && CheckRange(a-1, b+1, lineBelow) {
+					adjacentSymbol = true
+				} else if charToLeft && CheckRange(a-1, b, lineBelow) {
+					adjacentSymbol = true
+				} else if charToRight && CheckRange(a, b+1, lineBelow) {
+					adjacentSymbol = true
+				} else if CheckRange(a, b, lineBelow) {
+					adjacentSymbol = true
+				}
 			}
-			fmt.Println()
+			if adjacentSymbol {
+				partInt, err := strconv.Atoi(numStr)
+				if err != nil {
+					panic(err)
+				}
+				partNumbers = append(partNumbers, partInt)
+			}
 		}
 	}
-	fmt.Println(strings.Repeat("=", 140))
 
+	sumPartOne := 0
+	for _, num := range partNumbers {
+		sumPartOne += num
+	}
+	fmt.Printf("Sum of numbers with adjacent symbol: %v\n", sumPartOne)
 }
