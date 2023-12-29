@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// IntPow returns n to the m-th power for only integer inputs
 func IntPow(n, m int) int {
 	if m == 0 {
 		return 1
