@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -34,6 +35,23 @@ func Distance(timeLimit, timeHeld int) int {
 	return timeMoving * boatSpeed
 }
 
+// IntPow returns n to the m-th power for only integer inputs
+func IntPow(n, m int) int {
+	if m == 0 {
+		return 1
+	}
+
+	if m == 1 {
+		return n
+	}
+
+	result := n
+	for i := 2; i <= m; i++ {
+		result *= n
+	}
+	return result
+}
+
 func main() {
 	filename := "input.txt"
 	// filename := "input_test.txt"
@@ -56,8 +74,8 @@ func main() {
 			distanceRecord = StrToIntSlice(ints)
 		}
 	}
-	// fmt.Printf("Time: %v\nDistance: %v", timeLimit, distanceRecord)
 
+	// part one
 	waysToWin := make([]int, len(timeLimit))
 	for i := range timeLimit {
 		for hold := 0; hold <= timeLimit[i]; hold++ {
@@ -72,5 +90,44 @@ func main() {
 	for i := range waysToWin {
 		partOne *= waysToWin[i]
 	}
-	fmt.Printf("Product of ways to win (part one): %v\n", partOne)
+	fmt.Printf("Product of ways to win all races (part one): %v\n", partOne)
+
+	// part two
+	var timeStr string
+	var recordStr string
+	for i := range timeLimit {
+		timeStr += strconv.Itoa(timeLimit[i])
+		recordStr += strconv.Itoa(distanceRecord[i])
+	}
+	t, err := strconv.Atoi(timeStr)
+	if err != nil {
+		panic(err)
+	}
+	r, err := strconv.Atoi(recordStr)
+	if err != nil {
+		panic(err)
+	}
+
+	// upside parabola of form: f(x) = t*x - x^2, where t == time limit (constant), x == time held
+	// shift it down by the current record, r:
+	// g(x) = f(x) - r = -x^2 + t*x - r
+	// set g equal to zero to find values of x where g(x) == 0 <-> f(x) == r. we want the number of
+	// integer x values such that g(x) > 0 and they must exist between these two roots of g:
+	// -> x = 0.5 * (t +/- sqrt(t^2 - 4*r))
+	// this gives us an interval [a, b] such that g(x) >= 0 for all x in [a, b].
+	// numbers to the left of a are below the record, numbers to the right of b are below the record,
+	// and numbers in between beat the record. we only want integer values of x, so let a' = ceil(a)
+	// and let b' = floor(b). The answer is the number of integers between these two numbers (inclusive),
+	// i.e. b' - a' + 1
+	t2 := IntPow(t, 2)
+	discriminant := math.Sqrt(float64(t2 - 4*r))
+
+	a := (float64(t) - discriminant) * 0.5
+	a_prime := int(math.Ceil(a))
+
+	b := (float64(t) + discriminant) * 0.5
+	b_prime := int(math.Floor(b))
+
+	partTwo := b_prime - a_prime + 1
+	fmt.Printf("Number of ways to win big race (part two): %v\n", partTwo)
 }
