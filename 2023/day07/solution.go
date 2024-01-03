@@ -13,52 +13,99 @@ import (
 )
 
 type hand struct {
-	cards    []string
-	bid      int
-	typename string
-	typerank int
+	cards     []string
+	bid       int
+	typename  string
+	typerank  int
+	typenameJ string
+	typerankJ int
 }
 
 func CreateHand(cards []string, bid int) hand {
-	h := hand{cards, bid, "", -1}
+	h := hand{cards, bid, "", -1, "", -1}
+	// part one rules
+	counts := CountCards(h.cards)
+	h.typename, h.typerank = RankCards(counts)
 
-	typemap := make(map[string]int)
+	// part two rules with joker wild card
+	jokerCount := 0
+	var cardsNoJoker []string
 	for _, card := range h.cards {
-		typemap[card]++
+		if card == "J" {
+			jokerCount++
+		} else {
+			cardsNoJoker = append(cardsNoJoker, card)
+		}
 	}
-	var counts []int
-	for _, count := range typemap {
-		counts = append(counts, count)
-	}
-	sort.Sort(sort.Reverse(sort.IntSlice(counts)))
 
-	if counts[0] == 5 {
-		h.typename = "five of a kind"
-		h.typerank = 6
-	} else if counts[0] == 4 {
-		h.typename = "four of a kind"
-		h.typerank = 5
-	} else if counts[0] == 3 && counts[1] == 2 {
-		h.typename = "full house"
-		h.typerank = 4
-	} else if counts[0] == 3 {
-		h.typename = "three of a kind"
-		h.typerank = 3
-	} else if counts[0] == 2 && counts[1] == 2 {
-		h.typename = "two pair"
-		h.typerank = 2
-	} else if counts[0] == 2 {
-		h.typename = "one pair"
-		h.typerank = 1
+	if jokerCount == 0 {
+		// if no jokers, hand type and rank is the same as in part one
+		h.typenameJ, h.typerankJ = h.typename, h.typerank
+	} else if jokerCount == 5 {
+		// hand is all jokers, can't substitute in for other cards
+		h.typenameJ, h.typerankJ = "five of a kind", 6
 	} else {
-		h.typename = "high card"
-		h.typerank = 0
+		h.typenameJ, h.typerankJ = BestJokerHand(jokerCount, cardsNoJoker)
 	}
-
 	return h
 }
 
-var cardRank map[string]int
+func CountCards(cards []string) []int {
+	var counts []int
+	for _, count := range CardMap(cards) {
+		counts = append(counts, count)
+	}
+	return counts
+}
+
+func CardMap(cards []string) map[string]int {
+	cardMap := make(map[string]int)
+	for _, card := range cards {
+		cardMap[card]++
+	}
+	return cardMap
+}
+
+func RankCards(counts []int) (string, int) {
+	// reverse sort so most frequent card is first
+	sort.Sort(sort.Reverse(sort.IntSlice(counts)))
+	if counts[0] == 5 {
+		return "five of a kind", 6
+	} else if counts[0] == 4 {
+		return "four of a kind", 5
+	} else if counts[0] == 3 && counts[1] == 2 {
+		return "full house", 4
+	} else if counts[0] == 3 {
+		return "three of a kind", 3
+	} else if counts[0] == 2 && counts[1] == 2 {
+		return "two pair", 2
+	} else if counts[0] == 2 {
+		return "one pair", 1
+	}
+	return "high card", 0
+}
+
+func BestJokerHand(jokerCount int, cardsNoJoker []string) (string, int) {
+	bestType, bestRank := "", 0
+	cardMap := CardMap(cardsNoJoker)
+	// for each unique non-joker card in the hand
+	for card := range cardMap {
+		// can only replace as many cards as we have jokers in the hand
+		replaceCount := jokerCount
+		// copy our joker-less hand into a temporary string slice
+		tempCards := make([]string, len(cardsNoJoker))
+		copy(tempCards, cardsNoJoker)
+		for ; replaceCount > 0; replaceCount-- {
+			tempCards = append(tempCards, card)
+		}
+		jokerType, jokerRank := RankCards(CountCards(tempCards))
+		if jokerRank > bestRank {
+			bestRank = jokerRank
+			bestType = jokerType
+		}
+	}
+	return bestType, bestRank
+}
 
 func main() {
 	filename := "input.txt"
@@ -70,10 +117,11 @@ func main() {
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 
+	var cardRank map[string]int
 	cardRank = make(map[string]int)
-	cardlabels := []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-	for i := range cardlabels {
-		cardRank[cardlabels[i]] = i
+	cardLabels := []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+	for i := range cardLabels {
+		cardRank[cardLabels[i]] = i
 	}
 
 	allHands := []hand{}
@@ -88,25 +136,54 @@ func main() {
 
 		hand := CreateHand(cards, bid)
 		allHands = append(allHands, hand)
-		sort.SliceStable(allHands, func(i, j int) bool {
-			if allHands[i].typerank == allHands[j].typerank {
-				for k := range allHands[i].cards {
-					cardI := allHands[i].cards[k]
-					cardJ := allHands[j].cards[k]
-					if cardI == cardJ {
-						continue
-					}
-					return cardRank[cardI] < cardRank[cardJ]
-				}
-			}
-			return allHands[i].typerank < allHands[j].typerank
-		})
-
 	}
+
+	// part one
+	sort.SliceStable(allHands, func(i, j int) bool {
+		if allHands[i].typerank == allHands[j].typerank {
+			for k := range allHands[i].cards {
+				cardI := allHands[i].cards[k]
+				cardJ := allHands[j].cards[k]
+				if cardI == cardJ {
+					continue
+				}
+				return cardRank[cardI] < cardRank[cardJ]
+			}
+		}
+		return allHands[i].typerank < allHands[j].typerank
+	})
 
 	var partOne int
 	for i, hand := range allHands {
 		partOne += hand.bid * (i + 1)
 	}
-	fmt.Printf("Total winnings (part one): %v", partOne)
+	fmt.Printf("Total winnings (part one): %v\n", partOne)
+
+	// part two
+	var cardRankJ map[string]int
+	cardRankJ = make(map[string]int)
+	// move joker to worst card
+	cardLabelsJ := []string{"J", "2", "3", "4", "5", "6", "7", "8", "9", "T", "Q", "K", "A"}
+	for i := range cardLabelsJ {
+		cardRankJ[cardLabelsJ[i]] = i
+	}
+	sort.SliceStable(allHands, func(i, j int) bool {
+		if allHands[i].typerankJ == allHands[j].typerankJ {
+			for k := range allHands[i].cards {
+				cardI := allHands[i].cards[k]
+				cardJ := allHands[j].cards[k]
+				if cardI == cardJ {
+					continue
+				}
+				return cardRankJ[cardI] < cardRankJ[cardJ]
+			}
+		}
+		return allHands[i].typerankJ < allHands[j].typerankJ
+	})
+
+	var partTwo int
+	for i, hand := range allHands {
+		partTwo += hand.bid * (i + 1)
+	}
+	fmt.Printf("Total winnings with jokers (part two): %v\n", partTwo)
 }
