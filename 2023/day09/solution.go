@@ -1,4 +1,4 @@
-// https://adventofcode.com/2023/day/8
+// https://adventofcode.com/2023/day/9
 
 package main
 
