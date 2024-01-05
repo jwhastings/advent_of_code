@@ -51,7 +51,7 @@ func main() {
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 
-	partOne := 0
+	var partOne, partTwo int
 	for scanner.Scan() {
 		// get string from input file, line by line
 		input := scanner.Text()
@@ -59,7 +59,7 @@ func main() {
 		var histories [][]int
 		histories = append(histories, history)
 		i := 0
-		lastVal := 0
+		var lastVal, firstVal int
 		for !SameValues(histories[i]) {
 			nextHistory := make([]int, len(histories[i])-1)
 			for j := range nextHistory {
@@ -70,15 +70,19 @@ func main() {
 
 			if SameValues(nextHistory) {
 				lastVal = 0
+				firstVal = histories[i][0]
 				for k := i; k >= 0; k-- {
+					if k < i {
+						firstVal = histories[k][0] - firstVal
+					}
 					lastVal += histories[k][len(histories[k])-1]
 				}
 			}
 		}
 
-		histories[0] = append(histories[0], lastVal)
-		fmt.Printf("History with extrapolation: %v\n", histories[0])
 		partOne += lastVal
+		partTwo += firstVal
 	}
-	fmt.Printf("Sum of extrapolated values (part one): %v", partOne)
+	fmt.Printf("Sum of extrapolated values (part one): %v\n", partOne)
+	fmt.Printf("Sum of backward-extrapolated values (part two): %v\n", partTwo)
 }
